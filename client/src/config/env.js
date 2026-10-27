@@ -1,6 +1,6 @@
 const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
 const apiBaseUrlValue =
-  configuredApiBaseUrl || (import.meta.env.APP_ENV === 'prod' ? '' : 'http://localhost:5000');
+  import.meta.env.PROD ? '' : configuredApiBaseUrl || 'http://localhost:5000';
 
 let apiBaseUrl = '';
 if (apiBaseUrlValue) {

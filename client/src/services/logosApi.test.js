@@ -5,7 +5,6 @@ let getTags;
 let getWords;
 
 beforeAll(async () => {
-  vi.stubEnv('APP_ENV', 'dev');
   vi.stubEnv('VITE_API_BASE_URL', 'http://localhost:5000');
   ({ generateName, getTags, getWords } = await import('./logosApi.js'));
 });
