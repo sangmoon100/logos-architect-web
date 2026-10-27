@@ -1,0 +1,11 @@
+{
+  "name": "LogosArchitect",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "concurrently -k -n \"SERVER,CLIENT\" -c \"yellow,cyan\" \"npm run dev --prefix server\" \"npm run dev --prefix client\""
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.6"
+  }
+}
