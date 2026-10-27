@@ -1,8 +1,22 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { generateName, getTags, getWords } from './logosApi.js';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+
+let generateName;
+let getTags;
+let getWords;
+
+beforeAll(async () => {
+  vi.stubEnv('APP_ENV', 'dev');
+  vi.stubEnv('VITE_API_BASE_URL', 'http://localhost:5000');
+  ({ generateName, getTags, getWords } = await import('./logosApi.js'));
+});
 
 afterEach(() => {
   vi.unstubAllGlobals();
+});
+
+afterAll(() => {
+  vi.unstubAllEnvs();
+  vi.resetModules();
 });
 
 describe('Logos Architect API client', () => {
@@ -15,7 +29,7 @@ describe('Logos Architect API client', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(getTags()).resolves.toEqual(['#게헨나']);
-    expect(fetchMock.mock.calls[0][0]).toBe('http://localhost:3001/api/tags');
+    expect(fetchMock.mock.calls[0][0]).toBe('http://localhost:5000/api/tags');
   });
 
   it('sends every selected tag as a repeated query parameter', async () => {
@@ -40,7 +54,7 @@ describe('Logos Architect API client', () => {
     });
 
     expect(fetchMock.mock.calls[0][0]).toBe(
-      'http://localhost:3001/api/words?tags=%23%EA%B2%8C%ED%97%A8%EB%82%98&tags=%23%EC%8B%A0%EB%B9%84&q=%EC%84%AD%EB%A6%AC&page=2&pageSize=10',
+      'http://localhost:5000/api/words?tags=%23%EA%B2%8C%ED%97%A8%EB%82%98&tags=%23%EC%8B%A0%EB%B9%84&q=%EC%84%AD%EB%A6%AC&page=2&pageSize=10',
     );
   });
 
@@ -70,7 +84,7 @@ describe('Logos Architect API client', () => {
 
     await expect(generateName(['#광기'])).resolves.toEqual(result);
     expect(fetchMock.mock.calls[0][0]).toBe(
-      'http://localhost:3001/api/names/generate',
+      'http://localhost:5000/api/names/generate',
     );
     expect(fetchMock.mock.calls[0][1]).toMatchObject({
       method: 'POST',

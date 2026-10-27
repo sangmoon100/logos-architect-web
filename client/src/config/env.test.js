@@ -7,16 +7,17 @@ afterEach(() => {
 
 describe('API base URL configuration', () => {
   it('uses the same-origin base URL in production by default', async () => {
-    vi.stubEnv('PROD', true);
+    vi.stubEnv('APP_ENV', 'prod');
     vi.stubEnv('VITE_API_BASE_URL', '');
 
     const { apiBaseUrl } = await import('./env.js');
 
     expect(apiBaseUrl).toBe('');
+    expect(`${apiBaseUrl}/api/tags`).toBe('/api/tags');
   });
 
   it('uses the local server origin in development by default', async () => {
-    vi.stubEnv('PROD', false);
+    vi.stubEnv('APP_ENV', 'dev');
     vi.stubEnv('VITE_API_BASE_URL', '');
 
     const { apiBaseUrl } = await import('./env.js');
@@ -25,7 +26,7 @@ describe('API base URL configuration', () => {
   });
 
   it('uses and validates a configured API origin', async () => {
-    vi.stubEnv('PROD', true);
+    vi.stubEnv('APP_ENV', 'prod');
     vi.stubEnv('VITE_API_BASE_URL', 'https://api.logos.example.com');
 
     const { apiBaseUrl } = await import('./env.js');
