@@ -39,10 +39,10 @@ afterAll(() => {
 });
 
 describe('server environment configuration', () => {
-  it('uses the local port default and treats a missing MongoDB URI as unavailable', () => {
+  it('uses the server port default and treats a missing MongoDB URI as unavailable', () => {
     const config = loadConfig();
 
-    expect(config.port).toBe(3001);
+    expect(config.port).toBe(5000);
     expect(config.appEnv).toBe('dev');
     expect(config.mongoUri).toBeNull();
   });

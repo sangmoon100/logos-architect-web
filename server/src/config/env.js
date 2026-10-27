@@ -93,7 +93,7 @@ if (clientOriginValue) {
 }
 
 const config = Object.freeze({
-  port: parsePort(process.env.PORT ?? '3001'),
+  port: parsePort(process.env.PORT ?? '5000'),
   nodeEnv,
   appEnv,
   mongoUri: process.env.MONGODB_URI?.trim() || null,

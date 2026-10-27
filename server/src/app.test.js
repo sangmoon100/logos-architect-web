@@ -7,7 +7,7 @@ jest.mock('./config/env', () => ({
     allowInvalidCertificates: false,
     allowInvalidHostnames: false,
     caFile: null,
-    clientOrigin: null,
+    clientOrigin: 'https://logos.example.com',
   },
 }));
 
@@ -20,5 +20,24 @@ describe('health endpoint', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ status: 'ok' });
+  });
+});
+
+describe('CORS policy', () => {
+  it.each(['http://localhost:5173', 'https://logos.example.com'])(
+    'allows the configured client origin %s',
+    async (origin) => {
+      const response = await request(app).get('/health').set('Origin', origin);
+
+      expect(response.headers['access-control-allow-origin']).toBe(origin);
+    },
+  );
+
+  it('does not allow other origins', async () => {
+    const response = await request(app)
+      .get('/health')
+      .set('Origin', 'https://attacker.example.com');
+
+    expect(response.headers['access-control-allow-origin']).toBeUndefined();
   });
 });
