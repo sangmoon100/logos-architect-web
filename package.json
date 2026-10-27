@@ -5,6 +5,7 @@
   "scripts": {
     "build": "npm ci --prefix client && npm run build --prefix client && npm ci --omit=dev --prefix server",
     "start": "node server/app.js",
+    "test": "npm test --prefix server",
     "dev": "concurrently -k -n \"SERVER,CLIENT\" -c \"yellow,cyan\" \"npm run dev --prefix server\" \"npm run dev --prefix client\""
   },
   "devDependencies": {

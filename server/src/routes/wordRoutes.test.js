@@ -40,11 +40,11 @@ describe('word API routes', () => {
 
     const response = await request(app)
       .get('/api/tags')
-      .set('Origin', 'http://localhost:5174');
+      .set('Origin', 'http://localhost:5173');
 
     expect(response.status).toBe(200);
     expect(response.headers['access-control-allow-origin']).toBe(
-      'http://localhost:5174',
+      'http://localhost:5173',
     );
   });
 
