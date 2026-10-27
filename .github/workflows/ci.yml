@@ -1,6 +1,4 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
-
+# Logos Architect CI/CD 인프라 최적화 프로토콜
 name: CI
 
 on:
@@ -11,26 +9,35 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        node-version: [18.x, 20.x, 22.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+        # 현재 활성화된 Active LTS 노드 버전 규격 반영
+        node-version: [20.x, 22.x]
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v7
+    - name: 1. 레포지토리 소스 코드 체크아웃
+      uses: actions/checkout@v4
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v7
+    - name: 2. 가상 머신 내 Node.js ${{ matrix.node-version }} 인프라 세팅
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
+        # 캐시 의존성 경로를 클라이언트 기준으로 명시하여 속도 최적화
+        cache-dependency-path: './client/package.json'
+
+    - name: 3. 프론트엔드(Client) 의존성 설치 및 프로덕션 빌드 검증
+      run: |
+        cd client
+        npm ci
+        npm run build
+
+    - name: 4. 백엔드(Server) 의존성 설치 및 구동 정합성 검증
+      run: |
+        cd server
+        npm ci
     
     - name: Run Jest with coverage
       run: npm test -- --coverage
