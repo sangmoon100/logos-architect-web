@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         # 현재 활성화된 Active LTS 노드 버전 규격 반영
-        node-version: [20.x, 22.x]
+        node-version: [22.x, 24.x]
 
     steps:
     - name: 1. 레포지토리 소스 코드 체크아웃
@@ -39,10 +39,15 @@ jobs:
         cd server
         npm ci
     
-    - name: Run Jest with coverage
+    - name: 5. Jest Coverage 테스트
       run: npm test -- --coverage
 
-    - name: Upload results to Codecov
+    - name: 6. Upload results to Codecov
       uses: codecov/codecov-action@v7
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+        
+    - name: 7. Render 배포
+      if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+      run: |
+        curl -fIs -X POST '${{ secrets.RENDER_DEPLOY_HOOK_URL }}'
