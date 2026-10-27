@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         # 현재 활성화된 Active LTS 노드 버전 규격 반영
-        node-version: [22.x, 24.x]
+        node-version: [24.x]
 
     steps:
     - name: 1. 레포지토리 소스 코드 체크아웃
