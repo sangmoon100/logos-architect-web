@@ -1,19 +1,24 @@
-const { MongoClient } = require('mongodb');
-const { config } = require('../config/env');
+import {
+  MongoClient,
+  type Collection,
+  type Document,
+  type MongoClientOptions,
+} from 'mongodb';
+import { config } from '../config/env';
 
 const DATABASE_NAME = 'ShittimChest';
-let mongoClient = null;
-let connectPromise = null;
+let mongoClient: MongoClient | null = null;
+let connectPromise: Promise<MongoClient> | null = null;
 
-class MongoConnectionError extends Error {
-  constructor(cause) {
+export class MongoConnectionError extends Error {
+  constructor(cause: unknown) {
     super('MongoDB Atlas 연결에 실패했습니다', { cause });
     this.name = 'MongoConnectionError';
   }
 }
 
-function buildMongoClientOptions() {
-  const options = {
+function buildMongoClientOptions(): MongoClientOptions {
+  const options: MongoClientOptions = {
     connectTimeoutMS: 10000,
     serverSelectionTimeoutMS: 15000,
     maxConnecting: 20,
@@ -33,20 +38,29 @@ function buildMongoClientOptions() {
   return options;
 }
 
-function safeErrorName(error) {
+function safeErrorName(error: unknown): string {
   const name = error instanceof Error ? error.name : 'UnknownError';
   return name.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || 'UnknownError';
 }
 
-function logMongoConnectionHints(error) {
+function getErrorCode(error: unknown): unknown {
+  if (typeof error !== 'object' || error === null || !('code' in error)) {
+    return undefined;
+  }
+
+  return error.code;
+}
+
+function logMongoConnectionHints(error: unknown): void {
   const message = error instanceof Error ? error.message : '';
-  const code =
-    error && typeof error.code === 'string'
-      ? error.code.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40)
+  const code = getErrorCode(error);
+  const safeCode =
+    typeof code === 'string'
+      ? code.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40)
       : 'unknown';
 
   console.error(
-    `[Mongo] connection failed | context(env=${config.appEnv},error=${safeErrorName(error)},code=${code})`,
+    `[Mongo] connection failed | context(env=${config.appEnv},error=${safeErrorName(error)},code=${safeCode})`,
   );
 
   if (/tls|certificate/i.test(message)) {
@@ -56,8 +70,9 @@ function logMongoConnectionHints(error) {
   }
 }
 
-async function connectToMongo() {
-  if (!config.mongoUri) {
+export async function connectToMongo(): Promise<MongoClient | null> {
+  const mongoUri = config.mongoUri;
+  if (!mongoUri) {
     return null;
   }
   if (mongoClient) {
@@ -67,21 +82,24 @@ async function connectToMongo() {
     return connectPromise;
   }
 
-  const pendingConnection = (async () => {
-    let candidateClient;
+  const pendingConnection = (async (): Promise<MongoClient> => {
+    let candidateClient: MongoClient | null = null;
 
     try {
-      candidateClient = new MongoClient(config.mongoUri, buildMongoClientOptions());
+      candidateClient = new MongoClient(
+        mongoUri,
+        buildMongoClientOptions(),
+      );
       await candidateClient.connect();
       mongoClient = candidateClient;
-      return mongoClient;
-    } catch (error) {
+      return candidateClient;
+    } catch (error: unknown) {
       logMongoConnectionHints(error);
 
       if (candidateClient) {
         try {
           await candidateClient.close();
-        } catch (closeError) {
+        } catch (closeError: unknown) {
           console.error(
             `[Mongo] failed connection cleanup failed | context(error=${safeErrorName(closeError)})`,
           );
@@ -102,7 +120,9 @@ async function connectToMongo() {
   }
 }
 
-async function getCollection(name) {
+export async function getCollection(
+  name: string,
+): Promise<Collection<Document> | null> {
   if (typeof name !== 'string' || name.trim() === '') {
     throw new TypeError('컬렉션 이름은 비어 있지 않은 문자열이어야 합니다');
   }
@@ -115,7 +135,7 @@ async function getCollection(name) {
   return client.db(DATABASE_NAME).collection(name.trim());
 }
 
-async function closeMongo() {
+export async function closeMongo(): Promise<void> {
   if (connectPromise) {
     await connectPromise;
   }
@@ -129,10 +149,3 @@ async function closeMongo() {
     mongoClient = null;
   }
 }
-
-module.exports = {
-  connectToMongo,
-  getCollection,
-  closeMongo,
-  MongoConnectionError,
-};

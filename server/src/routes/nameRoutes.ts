@@ -1,12 +1,21 @@
-const express = require('express');
-const HttpError = require('../errors/HttpError');
-const { listCandidates } = require('../features/words/wordRepository');
-const { generateNames } = require('../features/names/nameGenerator');
-const { parseBodyTags } = require('../features/words/tagValidation');
+import express, {
+  type Request,
+  type RequestHandler,
+  type Response,
+} from 'express';
+import HttpError = require('../errors/HttpError');
+import { generateNames } from '../features/names/nameGenerator';
+import { parseBodyTags } from '../features/words/tagValidation';
+import { listCandidates } from '../features/words/wordRepository';
+
+type AsyncRouteHandler = (
+  request: Request,
+  response: Response,
+) => Promise<void>;
 
 const router = express.Router();
 
-function asyncHandler(handler) {
+function asyncHandler(handler: AsyncRouteHandler): RequestHandler {
   return (request, response, next) => {
     Promise.resolve(handler(request, response)).catch(next);
   };
@@ -34,4 +43,4 @@ router.post(
   }),
 );
 
-module.exports = router;
+export = router;

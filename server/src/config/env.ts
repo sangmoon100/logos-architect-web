@@ -1,15 +1,33 @@
-const path = require('node:path');
-const dotenv = require('dotenv');
+import path = require('node:path');
+import dotenv = require('dotenv');
+
+type AppEnvironment = 'dev' | 'qa' | 'prod';
+
+export interface ServerConfig {
+  port: number;
+  nodeEnv: string;
+  appEnv: AppEnvironment;
+  mongoUri: string | null;
+  allowInvalidCertificates: boolean;
+  allowInvalidHostnames: boolean;
+  caFile: string | null;
+  clientOrigin: string | null;
+}
 
 const serverRoot = path.resolve(__dirname, '../..');
 const dotenvPath = path.join(serverRoot, '.env');
 const dotenvResult = dotenv.config({ path: dotenvPath, quiet: true });
 
-if (dotenvResult.error && dotenvResult.error.code !== 'ENOENT') {
-  throw new Error('server/.env 로드에 실패했습니다', { cause: dotenvResult.error });
+if (dotenvResult.error) {
+  const errorCode: unknown = Reflect.get(dotenvResult.error, 'code');
+  if (errorCode !== 'ENOENT') {
+    throw new Error('server/.env 로드에 실패했습니다', {
+      cause: dotenvResult.error,
+    });
+  }
 }
 
-function parsePort(value) {
+function parsePort(value: string): number {
   if (!/^\d+$/.test(value)) {
     throw new RangeError('PORT는 1~65535 사이의 정수여야 합니다');
   }
@@ -22,7 +40,7 @@ function parsePort(value) {
   return port;
 }
 
-function parseBoolean(name, value) {
+function parseBoolean(name: string, value: string | undefined): boolean {
   if (value === undefined || value === '') {
     return false;
   }
@@ -38,6 +56,10 @@ function parseBoolean(name, value) {
   throw new RangeError(`${name}은 true 또는 false여야 합니다`);
 }
 
+function isAppEnvironment(value: string): value is AppEnvironment {
+  return value === 'dev' || value === 'qa' || value === 'prod';
+}
+
 const nodeEnv = process.env.NODE_ENV || 'development';
 const inferredAppEnv =
   nodeEnv === 'production' || nodeEnv === 'prod'
@@ -45,14 +67,17 @@ const inferredAppEnv =
     : nodeEnv === 'qa'
       ? 'qa'
       : 'dev';
-const appEnv = process.env.APP_ENV || inferredAppEnv;
+const appEnvValue = process.env.APP_ENV || inferredAppEnv;
 
-if (!['dev', 'qa', 'prod'].includes(appEnv)) {
+if (!isAppEnvironment(appEnvValue)) {
   throw new RangeError('APP_ENV는 dev, qa 또는 prod여야 합니다');
 }
+const appEnv = appEnvValue;
+
 if ((nodeEnv === 'production' || nodeEnv === 'prod') !== (appEnv === 'prod')) {
   throw new Error('NODE_ENV와 APP_ENV의 운영 환경 설정이 일치하지 않습니다');
 }
+
 const allowInvalidCertificates = parseBoolean(
   'MONGO_TLS_ALLOW_INVALID_CERTS',
   process.env.MONGO_TLS_ALLOW_INVALID_CERTS,
@@ -72,13 +97,15 @@ if (
 const caFile = process.env.MONGO_TLS_CA_FILE?.trim();
 const clientOriginValue = process.env.CLIENT_ORIGIN?.trim();
 
-let clientOrigin = null;
+let clientOrigin: string | null = null;
 if (clientOriginValue) {
-  let parsedOrigin;
+  let parsedOrigin: URL;
   try {
     parsedOrigin = new URL(clientOriginValue);
-  } catch (error) {
-    throw new Error('CLIENT_ORIGIN은 유효한 Origin이어야 합니다', { cause: error });
+  } catch (error: unknown) {
+    throw new Error('CLIENT_ORIGIN은 유효한 Origin이어야 합니다', {
+      cause: error,
+    });
   }
 
   if (
@@ -92,7 +119,7 @@ if (clientOriginValue) {
   throw new Error('QA 및 운영 환경에는 CLIENT_ORIGIN 설정이 필요합니다');
 }
 
-const config = Object.freeze({
+export const config: Readonly<ServerConfig> = Object.freeze({
   port: parsePort(process.env.PORT ?? '5000'),
   nodeEnv,
   appEnv,
@@ -102,5 +129,3 @@ const config = Object.freeze({
   caFile: caFile ? path.resolve(serverRoot, caFile) : null,
   clientOrigin,
 });
-
-module.exports = { config };

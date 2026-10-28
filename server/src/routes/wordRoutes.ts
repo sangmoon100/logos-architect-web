@@ -1,7 +1,16 @@
-const express = require('express');
-const HttpError = require('../errors/HttpError');
-const { listTags, listWords } = require('../features/words/wordRepository');
-const { parseQueryTags } = require('../features/words/tagValidation');
+import express, {
+  type Request,
+  type RequestHandler,
+  type Response,
+} from 'express';
+import HttpError = require('../errors/HttpError');
+import { parseQueryTags } from '../features/words/tagValidation';
+import { listTags, listWords } from '../features/words/wordRepository';
+
+type AsyncRouteHandler = (
+  request: Request,
+  response: Response,
+) => Promise<void>;
 
 const router = express.Router();
 const DEFAULT_PAGE_SIZE = 20;
@@ -9,13 +18,18 @@ const MAX_PAGE_SIZE = 100;
 const MAX_SEARCH_LENGTH = 100;
 const MAX_MONGO_SKIP = 2147483647;
 
-function asyncHandler(handler) {
+function asyncHandler(handler: AsyncRouteHandler): RequestHandler {
   return (request, response, next) => {
     Promise.resolve(handler(request, response)).catch(next);
   };
 }
 
-function parsePositiveInteger(value, fallback, name, maximum) {
+function parsePositiveInteger(
+  value: unknown,
+  fallback: number,
+  name: string,
+  maximum: number,
+): number {
   if (value === undefined) {
     return fallback;
   }
@@ -30,7 +44,11 @@ function parsePositiveInteger(value, fallback, name, maximum) {
   return parsed;
 }
 
-function parseWordQuery(query) {
+function parseWordQuery(query: Request['query']): {
+  query: string;
+  page: number;
+  pageSize: number;
+} {
   const search = query.q === undefined ? '' : query.q;
   if (typeof search !== 'string' || search.length > MAX_SEARCH_LENGTH) {
     throw new HttpError(
@@ -61,7 +79,7 @@ function parseWordQuery(query) {
 
 router.get(
   '/tags',
-  asyncHandler(async (request, response) => {
+  asyncHandler(async (_request, response) => {
     const tags = await listTags();
     response.json({ success: true, data: tags });
   }),
@@ -77,4 +95,4 @@ router.get(
   }),
 );
 
-module.exports = router;
+export = router;

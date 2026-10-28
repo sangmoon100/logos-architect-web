@@ -1,4 +1,20 @@
-function createOriginCallback({ appEnv, clientOrigin }) {
+import type { CorsOptions } from 'cors';
+
+type AppEnvironment = 'dev' | 'qa' | 'prod';
+type CorsOriginCallback = Extract<
+  NonNullable<CorsOptions['origin']>,
+  (...args: never[]) => unknown
+>;
+
+interface CorsConfig {
+  appEnv: AppEnvironment;
+  clientOrigin: string | null;
+}
+
+export function createOriginCallback({
+  appEnv,
+  clientOrigin,
+}: CorsConfig): CorsOriginCallback {
   return (origin, callback) => {
     if (!origin) {
       callback(null, true);
@@ -15,5 +31,3 @@ function createOriginCallback({ appEnv, clientOrigin }) {
     callback(null, Boolean(match && port >= 1 && port <= 65535));
   };
 }
-
-module.exports = { createOriginCallback };

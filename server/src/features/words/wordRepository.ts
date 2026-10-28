@@ -1,14 +1,50 @@
-const { getCollection } = require('../../utils/mongoConnection');
-const HttpError = require('../../errors/HttpError');
+import type { Collection, Document } from 'mongodb';
+import HttpError = require('../../errors/HttpError');
+import { getCollection } from '../../utils/mongoConnection';
+
+type PartOfSpeech = 'adjective' | 'noun';
+
+interface WordRecord {
+  word_en: string;
+  word_ko: string;
+  pronunciation: string;
+  part_of_speech: PartOfSpeech;
+  tags: string[];
+}
+
+interface WordCandidate extends WordRecord {
+  weight?: unknown;
+}
+
+interface TagAggregationResult extends Document {
+  _id: string;
+}
+
+interface WordSearchAggregationResult extends Document {
+  items?: Document[];
+  count?: Array<{ total: number }>;
+}
+
+interface WordSearchOptions {
+  tags: string[];
+  query: string;
+  page: number;
+  pageSize: number;
+}
+
+interface WordSearchResult {
+  items: WordRecord[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+}
 
 const COLLECTION_NAME = 'words';
 
-/**
- * DB 연결이 없는 경우 빈 컬렉션처럼 처리하지 않고 서비스 불가 오류를 전달한다.
- * @returns {Promise<import('mongodb').Collection>}
- * @throws {HttpError} DB 연결이 설정되지 않은 경우
- */
-async function getWordsCollection() {
+async function getWordsCollection(): Promise<Collection<Document>> {
   const collection = await getCollection(COLLECTION_NAME);
   if (!collection) {
     throw new HttpError(
@@ -21,36 +57,52 @@ async function getWordsCollection() {
   return collection;
 }
 
-/**
- * DB 문서를 API 계약에 맞춰 검증하고 화면에 필요한 필드만 반환한다.
- * @param {object} document MongoDB 단어 문서
- * @param {boolean} includeWeight 작명 후보 응답에 weight를 포함할지 여부
- * @returns {object} 검증된 단어 레코드
- * @throws {Error} 필수 필드나 품사, 태그 형식이 올바르지 않은 경우
- */
-function toWordRecord(document, includeWeight = false) {
-  if (!document || typeof document !== 'object') {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim() !== '';
+}
+
+function isPartOfSpeech(value: unknown): value is PartOfSpeech {
+  return value === 'adjective' || value === 'noun';
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.every((tag: unknown) => typeof tag === 'string')
+  );
+}
+
+function toWordRecord(
+  document: unknown,
+  includeWeight: true,
+): WordCandidate;
+function toWordRecord(
+  document: unknown,
+  includeWeight?: false,
+): WordRecord;
+function toWordRecord(
+  document: unknown,
+  includeWeight = false,
+): WordRecord | WordCandidate {
+  if (!isRecord(document)) {
     throw new Error('words 컬렉션에 유효하지 않은 문서가 있습니다');
   }
 
-  const requiredStrings = [
-    document.word_en,
-    document.word_ko,
-    document.pronunciation,
-  ];
-
   if (
-    requiredStrings.some(
-      (value) => typeof value !== 'string' || value.trim() === '',
-    ) ||
-    !['adjective', 'noun'].includes(document.part_of_speech) ||
-    !Array.isArray(document.tags) ||
-    document.tags.some((tag) => typeof tag !== 'string')
+    !isNonEmptyString(document.word_en) ||
+    !isNonEmptyString(document.word_ko) ||
+    !isNonEmptyString(document.pronunciation) ||
+    !isPartOfSpeech(document.part_of_speech) ||
+    !isStringArray(document.tags)
   ) {
     throw new Error('words 컬렉션에 유효하지 않은 문서가 있습니다');
   }
 
-  const record = {
+  const record: WordRecord = {
     word_en: document.word_en,
     word_ko: document.word_ko,
     pronunciation: document.pronunciation,
@@ -58,22 +110,17 @@ function toWordRecord(document, includeWeight = false) {
     tags: [...document.tags],
   };
 
-  // weight는 작명 후보 전용 필드이므로 사전 조회 응답에는 노출하지 않는다.
   if (includeWeight && document.weight !== undefined) {
-    record.weight = document.weight;
+    return { ...record, weight: document.weight };
   }
 
   return record;
 }
 
-/**
- * 사전에서 실제 사용 중인 태그를 중복 없이 반환한다.
- * @returns {Promise<string[]>} 정렬된 태그 목록
- */
-async function listTags() {
+export async function listTags(): Promise<string[]> {
   const collection = await getWordsCollection();
   const documents = await collection
-    .aggregate([
+    .aggregate<TagAggregationResult>([
       { $unwind: '$tags' },
       { $match: { tags: { $type: 'string', $ne: '' } } },
       { $group: { _id: '$tags' } },
@@ -84,12 +131,12 @@ async function listTags() {
   return documents.map((document) => document._id);
 }
 
-function escapeRegex(value) {
+function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function buildWordMatch(tags, query) {
-  const conditions = [];
+function buildWordMatch(tags: string[], query: string): Document {
+  const conditions: Document[] = [];
   if (tags.length > 0) {
     conditions.push({ tags: { $in: tags } });
   }
@@ -108,16 +155,16 @@ function buildWordMatch(tags, query) {
   return conditions.length === 1 ? conditions[0] : { $and: conditions };
 }
 
-/**
- * 검색·태그 조건을 적용한 사전 페이지와 전체 일치 개수를 조회한다.
- * @param {{tags: string[], query: string, page: number, pageSize: number}} options 조회 조건
- * @returns {Promise<{items: object[], pagination: object}>} 사전 페이지 및 페이지 정보
- */
-async function listWords({ tags, query, page, pageSize }) {
+export async function listWords({
+  tags,
+  query,
+  page,
+  pageSize,
+}: WordSearchOptions): Promise<WordSearchResult> {
   const collection = await getWordsCollection();
   const match = buildWordMatch(tags, query);
   const [result] = await collection
-    .aggregate([
+    .aggregate<WordSearchAggregationResult>([
       { $match: match },
       {
         $facet: {
@@ -144,7 +191,7 @@ async function listWords({ tags, query, page, pageSize }) {
   const total = Number(result?.count?.[0]?.total || 0);
 
   return {
-    items: (result?.items || []).map(toWordRecord),
+    items: (result?.items || []).map((document) => toWordRecord(document)),
     pagination: {
       page,
       pageSize,
@@ -154,26 +201,22 @@ async function listWords({ tags, query, page, pageSize }) {
   };
 }
 
-/**
- * 품사와 태그 조건에 맞는 작명 후보를 조회한다.
- * @param {'adjective'|'noun'} partOfSpeech 후보 품사
- * @param {string[]} tags 선택 태그. 빈 배열이면 해당 품사의 전체 후보
- * @returns {Promise<object[]>} weight를 포함한 작명 후보 목록
- */
-async function listCandidates(partOfSpeech, tags) {
-  if (!['adjective', 'noun'].includes(partOfSpeech)) {
+export async function listCandidates(
+  partOfSpeech: PartOfSpeech,
+  tags: string[],
+): Promise<WordCandidate[]> {
+  if (partOfSpeech !== 'adjective' && partOfSpeech !== 'noun') {
     throw new TypeError('지원하지 않는 품사입니다');
   }
 
   const collection = await getWordsCollection();
-  const match = { part_of_speech: partOfSpeech };
-  // 태그 조건은 사전 조회와 동일하게 OR로 적용한다.
+  const match: Document = { part_of_speech: partOfSpeech };
   if (tags.length > 0) {
     match.tags = { $in: tags };
   }
 
   const documents = await collection
-    .aggregate([
+    .aggregate<Document>([
       { $match: match },
       {
         $project: {
@@ -192,5 +235,3 @@ async function listCandidates(partOfSpeech, tags) {
 
   return documents.map((document) => toWordRecord(document, true));
 }
-
-module.exports = { listTags, listWords, listCandidates };
