@@ -1,10 +1,7 @@
-import type { CorsOptions } from 'cors';
+import type fastifyCors = require('@fastify/cors');
 
 type AppEnvironment = 'dev' | 'qa' | 'prod';
-type CorsOriginCallback = Extract<
-  NonNullable<CorsOptions['origin']>,
-  (...args: never[]) => unknown
->;
+type OriginFunction = fastifyCors.OriginFunction;
 
 interface CorsConfig {
   appEnv: AppEnvironment;
@@ -14,7 +11,7 @@ interface CorsConfig {
 export function createOriginCallback({
   appEnv,
   clientOrigin,
-}: CorsConfig): CorsOriginCallback {
+}: CorsConfig): OriginFunction {
   return (origin, callback) => {
     if (!origin) {
       callback(null, true);

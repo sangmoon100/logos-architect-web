@@ -8,4 +8,8 @@ server/.env.*
 client/.env*
 !client/.env.example
 docs/
+!docs/
+docs/*
+!docs/api/
+docs/api/*
 PRD*.md

@@ -1,7 +1,7 @@
 {
   "name": "LogosArchitect",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.2.0",
   "scripts": {
     "build": "npm ci --prefix client && npm run build --prefix client && npm ci --prefix server && npm run build --prefix server && npm prune --omit=dev --prefix server",
     "start": "node server/app.js",
@@ -9,6 +9,10 @@
     "dev": "concurrently -k -n \"SERVER,CLIENT\" -c \"yellow,cyan\" \"npm run dev --prefix server\" \"npm run dev --prefix client\""
   },
   "devDependencies": {
-    "concurrently": "^10.0.6"
+    "concurrently": "^10.0.6",
+    "tsx": "^4.23.15"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
   }
 }

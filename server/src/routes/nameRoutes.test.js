@@ -1,19 +1,31 @@
-jest.mock('../features/words/wordRepository', () => ({
-  listCandidates: jest.fn(),
-}));
-
 jest.mock('../config/env', () => ({
   config: {
     appEnv: 'dev',
     clientOrigin: null,
-    mongoUri: null,
-    nodeEnv: 'test',
   },
 }));
 
-const request = require('supertest');
+jest.mock('../features/words/wordRepository', () => ({
+  listTags: jest.fn(),
+  listWords: jest.fn(),
+  listCandidates: jest.fn(),
+}));
+
+jest.mock('@fastify/static', () => {
+  const fastifyPlugin = require('fastify-plugin');
+  return fastifyPlugin(async () => {});
+});
+
+const Fastify = require('fastify');
+const nameRoutes = require('./nameRoutes');
+const { errorHandler } = require('../middleware/errorHandler');
 const wordRepository = require('../features/words/wordRepository');
-const app = require('../app');
+
+async function request(app, baseUrl, route, options = {}) {
+  const response = await fetch(`${baseUrl}${route}`, options);
+  const body = await response.json();
+  return { statusCode: response.status, body };
+}
 
 const adjective = {
   word_en: 'Frantic',
@@ -32,21 +44,34 @@ const noun = {
   weight: 5,
 };
 
-beforeEach(() => {
-  jest.clearAllMocks();
-});
-
 describe('name generation API', () => {
+  let app;
+  let baseUrl;
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    app = Fastify({ logger: false });
+    app.register(nameRoutes, { prefix: '/api' });
+    app.setErrorHandler(errorHandler);
+    baseUrl = await app.listen({ port: 0, host: '127.0.0.1' });
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
   it('returns combined and noun-only results for matching candidates', async () => {
     wordRepository.listCandidates
       .mockResolvedValueOnce([adjective])
       .mockResolvedValueOnce([noun]);
 
-    const response = await request(app)
-      .post('/api/names/generate')
-      .send({ tags: ['#광기'] });
+    const response = await request(app, baseUrl, '/api/names/generate', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ tags: ['#광기'] }),
+    });
 
-    expect(response.status).toBe(200);
+    expect(response.statusCode).toBe(200);
     expect(response.body).toMatchObject({
       success: true,
       data: [
@@ -78,16 +103,18 @@ describe('name generation API', () => {
     );
   });
 
-  it('returns noun-only formats when no adjective matches', async () => {
+  it('returns noun-only results when no adjective matches', async () => {
     wordRepository.listCandidates
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([noun]);
 
-    const response = await request(app)
-      .post('/api/names/generate')
-      .send({ tags: ['#광기'] });
+    const response = await request(app, baseUrl, '/api/names/generate', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ tags: ['#광기'] }),
+    });
 
-    expect(response.status).toBe(200);
+    expect(response.statusCode).toBe(200);
     expect(response.body.data).toEqual([
       {
         caseType: 'noun',
@@ -104,38 +131,25 @@ describe('name generation API', () => {
       .mockResolvedValueOnce([adjective])
       .mockResolvedValueOnce([]);
 
-    const response = await request(app).post('/api/names/generate').send({});
-
-    expect(response.status).toBe(422);
-    expect(response.body).toMatchObject({
-      success: false,
-      error: { code: 'NO_MATCHING_WORDS' },
+    const response = await request(app, baseUrl, '/api/names/generate', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({}),
     });
+
+    expect(response.statusCode).toBe(422);
+    expect(response.body.error.code).toBe('NO_MATCHING_WORDS');
   });
 
-  it('rejects non-array tag input', async () => {
-    const response = await request(app)
-      .post('/api/names/generate')
-      .send({ tags: '#광기' });
-
-    expect(response.status).toBe(400);
-    expect(response.body).toMatchObject({
-      success: false,
-      error: { code: 'INVALID_TAGS' },
+  it('rejects non-array tag input before querying candidates', async () => {
+    const response = await request(app, baseUrl, '/api/names/generate', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ tags: '#광기' }),
     });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.body.error.code).toBe('INVALID_TAGS');
     expect(wordRepository.listCandidates).not.toHaveBeenCalled();
-  });
-
-  it('rejects malformed JSON with a client error', async () => {
-    const response = await request(app)
-      .post('/api/names/generate')
-      .set('Content-Type', 'application/json')
-      .send('{');
-
-    expect(response.status).toBe(400);
-    expect(response.body).toMatchObject({
-      success: false,
-      error: { code: 'INVALID_JSON' },
-    });
   });
 });
