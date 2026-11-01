@@ -100,6 +100,16 @@ describe('Logos Architect workspace', () => {
     expect(screen.getByRole('button', { name: '#게헨나 태그 선택' })).toBeInTheDocument();
   });
 
+  it('labels dictionary cells for the stacked mobile layout', async () => {
+    render(<App />);
+
+    const cell = (await screen.findByText('Frantic')).closest('td');
+    expect(cell).toHaveAttribute('data-label', '영어');
+    expect(screen.getByText('광란의').closest('td')).toHaveAttribute('data-label', '한글');
+    expect(screen.getByText('프랜틱').closest('td')).toHaveAttribute('data-label', '발음');
+    expect(screen.getByText('#광기, #게헨나').closest('td')).toHaveAttribute('data-label', '태그');
+  });
+
   it('searches tags and synchronizes multi-selection with the dictionary', async () => {
     render(<App />);
     await screen.findByRole('button', { name: '#게헨나 태그 선택' });

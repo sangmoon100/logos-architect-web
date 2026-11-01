@@ -25,8 +25,8 @@ export default function App() {
   } = useLogosArchitect();
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-800 sm:px-8 sm:py-12">
-      <div className="mx-auto max-w-7xl">
+    <main className="min-h-screen bg-slate-50 px-[max(1rem,env(safe-area-inset-left))] pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-slate-800 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+      <div className="mx-auto max-w-7xl min-w-0">
         <LogosHeader />
         <TagSelector
           tags={tags}
@@ -55,7 +55,7 @@ export default function App() {
             <h2 className="text-sm font-semibold text-slate-600">
               📫 Contact Me (연락처)
             </h2>
-            <nav aria-label="연락처" className="flex items-center gap-2">
+            <nav aria-label="연락처" className="flex flex-wrap items-center gap-2">
               <a
                 href="https://discord.com/users/852514294943318096"
                 target="_blank"

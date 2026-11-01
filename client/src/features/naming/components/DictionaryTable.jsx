@@ -12,7 +12,7 @@ export default function DictionaryTable({
   return (
     <section
       aria-labelledby="dictionary-heading"
-      className="mt-8 rounded-2xl border border-slate-200/60 bg-white p-5 text-slate-800 shadow-sm sm:p-7"
+      className="mt-6 rounded-2xl border border-slate-200/60 bg-white p-4 text-slate-800 shadow-sm sm:mt-8 sm:p-7"
     >
       <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -41,28 +41,28 @@ export default function DictionaryTable({
         </label>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200">
-        <table className="w-full min-w-xl table-fixed text-left text-sm">
+      <div className="rounded-xl border border-slate-200 md:overflow-x-auto">
+        <table role="table" className="block w-full text-left text-sm md:table md:table-fixed">
           <caption className="sr-only">영어 단어, 한글 뜻, 발음, 태그 목록</caption>
-          <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-            <tr>
-              <th scope="col" className="w-[22%] px-4 py-3">영어</th>
-              <th scope="col" className="w-[22%] px-4 py-3">한글</th>
-              <th scope="col" className="w-[22%] px-4 py-3">발음</th>
-              <th scope="col" className="w-[34%] px-4 py-3">태그</th>
+          <thead role="rowgroup" className="sr-only bg-slate-50 text-xs uppercase tracking-wide text-slate-500 md:not-sr-only md:table-header-group">
+            <tr role="row" className="md:table-row">
+              <th role="columnheader" scope="col" className="w-[22%] px-4 py-3">영어</th>
+              <th role="columnheader" scope="col" className="w-[22%] px-4 py-3">한글</th>
+              <th role="columnheader" scope="col" className="w-[22%] px-4 py-3">발음</th>
+              <th role="columnheader" scope="col" className="w-[34%] px-4 py-3">태그</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200">
+          <tbody role="rowgroup" className="block divide-y divide-slate-200 md:table-row-group">
             {wordsLoading && (
-              <tr>
-                <td colSpan={4} role="status" className="px-4 py-8 text-center text-slate-500">
+              <tr role="row" className="block md:table-row">
+                <td colSpan={4} role="status" className="block px-4 md:table-cell py-8 text-center text-slate-500">
                   사전 항목을 불러오는 중입니다…
                 </td>
               </tr>
             )}
             {wordsError && (
-              <tr>
-                <td colSpan={4} role="alert" className="px-4 py-8 text-center text-rose-700">
+              <tr role="row" className="block md:table-row">
+                <td colSpan={4} role="alert" className="block px-4 md:table-cell py-8 text-center text-rose-700">
                   <div className="flex flex-col items-center gap-3">
                     <p>사전 항목을 불러오지 못했습니다: {wordsError}</p>
                     <button
@@ -77,8 +77,8 @@ export default function DictionaryTable({
               </tr>
             )}
             {!wordsLoading && !wordsError && words.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
+              <tr role="row" className="block md:table-row">
+                <td colSpan={4} className="block px-4 md:table-cell py-8 text-center text-slate-500">
                   조건에 맞는 사전 항목이 없습니다.
                 </td>
               </tr>
@@ -86,13 +86,17 @@ export default function DictionaryTable({
             {!wordsLoading &&
               !wordsError &&
               words.map((word) => (
-                <tr key={word.word_en} className="align-top text-slate-700 hover:bg-blue-50/50">
-                  <td className="wrap-break-word px-4 py-3 font-medium">{word.word_en}</td>
-                  <td className="wrap-break-word px-4 py-3">{word.word_ko}</td>
-                  <td className="wrap-break-word px-4 py-3 text-slate-600">
+                <tr
+                  key={word.word_en}
+                  role="row"
+                  className="block space-y-1.5 p-4 align-top text-slate-700 hover:bg-blue-50/50 md:table-row md:space-y-0 md:p-0"
+                >
+                  <td role="cell" data-label="영어" className="block wrap-break-word font-medium before:mb-0.5 before:block before:text-xs before:font-semibold before:text-slate-400 before:content-[attr(data-label)] md:before:hidden md:table-cell md:px-4 md:py-3">{word.word_en}</td>
+                  <td role="cell" data-label="한글" className="block wrap-break-word before:mb-0.5 before:block before:text-xs before:font-semibold before:text-slate-400 before:content-[attr(data-label)] md:before:hidden md:table-cell md:px-4 md:py-3">{word.word_ko}</td>
+                  <td role="cell" data-label="발음" className="block wrap-break-word text-slate-600 before:mb-0.5 before:block before:text-xs before:font-semibold before:text-slate-400 before:content-[attr(data-label)] md:before:hidden md:table-cell md:px-4 md:py-3">
                     {word.pronunciation}
                   </td>
-                  <td className="wrap-break-word px-4 py-3 text-slate-600">
+                  <td role="cell" data-label="태그" className="block wrap-break-word text-slate-600 before:mb-0.5 before:block before:text-xs before:font-semibold before:text-slate-400 before:content-[attr(data-label)] md:before:hidden md:table-cell md:px-4 md:py-3">
                     {word.tags.join(', ')}
                   </td>
                 </tr>
@@ -101,12 +105,12 @@ export default function DictionaryTable({
         </table>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <p role="status" aria-live="polite" className="text-sm text-slate-500">
           검색 결과 {pagination.total}개
         </p>
         {pagination.totalPages > 1 && (
-          <nav aria-label="사전 페이지 이동" className="flex items-center gap-3">
+          <nav aria-label="사전 페이지 이동" className="flex items-center justify-between gap-3 sm:justify-start">
             <button
               type="button"
               onClick={() => onPageChange(pagination.page - 1)}

@@ -8,7 +8,7 @@ export default function NameResults({ generation }) {
   return (
     <section
       aria-labelledby="results-heading"
-      className="mt-8 rounded-2xl border border-slate-200/60 bg-white p-5 text-slate-800 shadow-sm sm:p-7"
+      className="mt-6 rounded-2xl border border-slate-200/60 bg-white p-4 text-slate-800 shadow-sm sm:mt-8 sm:p-7"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -48,7 +48,7 @@ export default function NameResults({ generation }) {
                   ? '명사 단독 추출 프로토콜'
                   : '형용사 + 명사 결합 프로토콜'}
               </h3>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 {resultCards.map(({ key, title }) => (
                   <div
                     key={key}

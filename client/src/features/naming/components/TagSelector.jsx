@@ -21,7 +21,7 @@ export default function TagSelector({
   return (
     <section
       aria-labelledby="tag-heading"
-      className="rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm sm:p-7"
+      className="rounded-2xl border border-slate-200/60 bg-white p-4 shadow-sm sm:p-7"
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -39,7 +39,7 @@ export default function TagSelector({
             value={tagSearch}
             onChange={(event) => setTagSearch(event.target.value)}
             placeholder="태그 검색"
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+            className="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
           />
         </label>
       </div>
@@ -127,7 +127,7 @@ export default function TagSelector({
           onClick={onGenerate}
           disabled={generation.status === 'loading'}
           aria-busy={generation.status === 'loading'}
-          className="min-h-12 shrink-0 rounded-xl bg-blue-600 px-7 py-3 font-bold text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 disabled:cursor-wait disabled:opacity-60 sm:ml-auto"
+          className="min-h-12 w-full shrink-0 rounded-xl sm:w-auto bg-blue-600 px-7 py-3 font-bold text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 disabled:cursor-wait disabled:opacity-60 sm:ml-auto"
         >
           {generation.status === 'loading' ? '생성 중…' : '⚡ 생성'}
         </button>
