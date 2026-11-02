@@ -1,8 +1,39 @@
+import useClipboard from '../useClipboard.js';
+
 const resultCards = [
   { key: 'mix', title: '추천 믹스 명칭' },
   { key: 'translation', title: '한글 번역 명칭' },
   { key: 'english', title: '영어 원문 및 음독' },
 ];
+
+function CopyableResult({ text, label, children }) {
+  const { copy, status } = useClipboard();
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => copy(text)}
+        aria-label={`${label} 클립보드에 복사`}
+        className="mt-4 block w-full cursor-pointer text-left after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-cyan-300"
+      >
+        {children}
+      </button>
+      <span
+        role="status"
+        aria-live="polite"
+        className={`pointer-events-none absolute right-3 top-3 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm transition-opacity duration-150 ${
+          status === 'failed'
+            ? 'bg-rose-100 text-rose-700'
+            : 'bg-cyan-400 text-slate-900'
+        } ${status !== 'idle' ? 'opacity-100' : 'opacity-0'}`}
+      >
+        {status === 'copied' && 'Copied! ✔'}
+        {status === 'failed' && '복사 실패'}
+      </span>
+    </>
+  );
+}
 
 export default function NameResults({ generation }) {
   return (
@@ -52,10 +83,10 @@ export default function NameResults({ generation }) {
                 {resultCards.map(({ key, title }) => (
                   <div
                     key={key}
-                    className={`min-w-0 rounded-xl p-5 sm:p-6 ${
+                    className={`relative min-w-0 rounded-xl p-5 sm:p-6 ${
                       key === 'mix'
-                        ? 'bg-slate-900 text-cyan-400'
-                        : 'bg-slate-50 text-slate-800'
+                        ? 'bg-slate-900 text-cyan-400 transition hover:bg-slate-800 active:scale-[0.99]'
+                        : 'bg-slate-50 text-slate-800 transition hover:bg-slate-100 active:scale-[0.99]'
                     }`}
                   >
                     <h4
@@ -66,18 +97,27 @@ export default function NameResults({ generation }) {
                       {title}
                     </h4>
                     {key === 'english' ? (
-                      <>
-                        <p className="mt-4 wrap-break-word text-lg font-semibold text-slate-800">
+                      <CopyableResult
+                        label={`${result.english} 및 음독`}
+                        text={`${result.english}\n(${result.pronunciation})`}
+                      >
+                        <p className="wrap-break-word text-lg font-semibold text-slate-800">
                           {result.english}
                         </p>
                         <p className="mt-2 wrap-break-word text-sm text-slate-600">
                           ({result.pronunciation})
                         </p>
-                      </>
+                      </CopyableResult>
                     ) : (
-                      <p className="mt-4 wrap-break-word text-lg font-semibold leading-7">
-                        {result[key]}
-                      </p>
+                      <CopyableResult label={result[key]} text={result[key]}>
+                        <span
+                          className={`block wrap-break-word text-lg font-semibold leading-7 ${
+                            key === 'mix' ? 'text-cyan-400' : 'text-slate-800'
+                          }`}
+                        >
+                          {result[key]}
+                        </span>
+                      </CopyableResult>
                     )}
                   </div>
                 ))}

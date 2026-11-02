@@ -1,7 +1,7 @@
 {
   "name": "LogosArchitect",
   "private": true,
-  "version": "1.3.0",
+  "version": "1.3.1",
   "scripts": {
     "build": "npm ci --prefix client && npm run build --prefix client && npm ci --prefix server && npm run build --prefix server && npm prune --omit=dev --prefix server",
     "start": "node server/app.js",

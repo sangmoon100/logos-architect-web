@@ -266,6 +266,80 @@ describe('Logos Architect workspace', () => {
     ).toEqual(['형용사 + 명사 결합 프로토콜', '명사 단독 추출 프로토콜']);
   });
 
+  it('copies the mix name to the clipboard and shows brief feedback', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+    render(<App />);
+    await screen.findByRole('button', { name: '#게헨나 태그 선택' });
+    fireEvent.click(screen.getByRole('button', { name: /^⚡ 생성$/ }));
+
+    fireEvent.click(await screen.findByRole('button', { name: '광란의 프로비던스 클립보드에 복사' }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('광란의 프로비던스'));
+    expect(await screen.findByText('Copied! ✔')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText('Copied! ✔')).not.toBeInTheDocument(), {
+      timeout: 1500,
+    });
+  });
+
+  it('copies the mix, translation, and English with pronunciation results', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+    render(<App />);
+    await screen.findByRole('button', { name: '#게헨나 태그 선택' });
+    fireEvent.click(screen.getByRole('button', { name: /^⚡ 생성$/ }));
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: '광란의 프로비던스 클립보드에 복사',
+      }),
+    );
+    await waitFor(() =>
+      expect(writeText).toHaveBeenNthCalledWith(1, '광란의 프로비던스'),
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: '광란의 섭리 클립보드에 복사' }),
+    );
+    await waitFor(() =>
+      expect(writeText).toHaveBeenNthCalledWith(2, '광란의 섭리'),
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Frantic Providence 및 음독 클립보드에 복사',
+      }),
+    );
+    await waitFor(() =>
+      expect(writeText).toHaveBeenNthCalledWith(
+        3,
+        'Frantic Providence\n(프랜틱 프로비던스)',
+      ),
+    );
+  });
+
+  it('shows copy failure when clipboard access is unavailable', async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error('Clipboard permission denied'));
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+    render(<App />);
+    await screen.findByRole('button', { name: '#게헨나 태그 선택' });
+    fireEvent.click(screen.getByRole('button', { name: /^⚡ 생성$/ }));
+
+    fireEvent.click(await screen.findByRole('button', { name: '광란의 프로비던스 클립보드에 복사' }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('광란의 프로비던스'));
+    expect(await screen.findByText('복사 실패')).toBeInTheDocument();
+  });
+
   it('shows generation failures and preserves the empty dictionary state', async () => {
     getWords.mockResolvedValue({
       items: [],
